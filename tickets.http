@@ -1,0 +1,11 @@
+### Payouts ticket (the article's running example)
+POST http://localhost:8080/tickets
+Content-Type: text/plain
+
+Help! My payouts have been failing for 3 days.
+
+### Low-stakes feedback (should try auto_close, which needs 0.90 confidence)
+POST http://localhost:8080/tickets
+Content-Type: text/plain
+
+Just wanted to say the new dashboard looks great, thanks!

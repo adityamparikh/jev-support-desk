@@ -16,7 +16,7 @@ Stack: Spring Boot 4.0.7 · Spring AI 2.0.1 (BOM) · Spring AI TypeSafe 0.2.0 (`
 ./mvnw test -Dtest=ClassName#method # single test
 ```
 
-Required environment variables: `TYPESAFE_API_KEY` and `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` is optional and defaults to `claude-sonnet-5`. If either key is missing, startup fails on purpose with an unresolved placeholder.
+On this `ollama` branch, System One calls go to a local Ollama decision model instead of hosted Jev (see README for setup). `TYPESAFE_BASE_URL` (default `http://localhost:11434`), `TYPESAFE_API_KEY` (default `ollama`) and `TYPESAFE_DEFAULT_MODEL` (default `nimble`; Ollama has no `jev-latest`) are optional. `ANTHROPIC_API_KEY` is still required, and if it is missing, startup fails on purpose with an unresolved placeholder. `ANTHROPIC_MODEL` is optional and defaults to `claude-sonnet-5`. Ollama rejects a Noul without `instructions` (400), so give every Noul instructions.
 
 The app listens on port 8080 (`server.port` in `application.properties`). `README.md` and `tickets.http` also use 8080, so change all three together.
 

@@ -2,9 +2,7 @@ package com.example.supportdesk;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springaicommunity.typesafe.advisor.JevSelfRefineFailedException;
 
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,13 +20,13 @@ class DemoRunner implements CommandLineRunner {
 
 	private final TriageService triage;
 
-	private final ChatClient supportChatClient;
+	private final ReplyDrafter drafter;
 
 	private final String ticket;
 
-	DemoRunner(TriageService triage, ChatClient supportChatClient, @Value("${supportdesk.demo.ticket}") String ticket) {
+	DemoRunner(TriageService triage, ReplyDrafter drafter, @Value("${supportdesk.demo.ticket}") String ticket) {
 		this.triage = triage;
-		this.supportChatClient = supportChatClient;
+		this.drafter = drafter;
 		this.ticket = ticket;
 	}
 
@@ -46,18 +44,18 @@ class DemoRunner implements CommandLineRunner {
 				""".formatted(this.ticket, t.model(), t.latencyMs(), t.urgency(), t.department(), t.confidence(),
 				t.departmentProbabilities(), t.frustration(), t.action(), t.decision()));
 
-		if (t.decision() == org.springaicommunity.typesafe.judge.JevConfidenceGate.Decision.ESCALATE) {
+		if (t.decision() == ConfidenceGate.Decision.ESCALATE) {
 			logger.info("Escalated to a human; no draft generated.");
 			return;
 		}
 		try {
 			long start = System.nanoTime();
-			String draft = this.supportChatClient.prompt().user(this.ticket).call().content();
+			String draft = this.drafter.draft(this.ticket);
 			logger.info("\nApproved draft (%d ms incl. guardrail + judge):\n%s"
 				.formatted((System.nanoTime() - start) / 1_000_000, draft));
 		}
-		catch (JevSelfRefineFailedException ex) {
-			logger.warn("Judge rejected every attempt: " + ex.verdict().summary());
+		catch (ReplyRejectedException ex) {
+			logger.warn("Judge rejected the reply: " + ex.verdict().summary());
 		}
 	}
 

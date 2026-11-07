@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Companion demo for the article **"Springing into Jev"**. One Spring Boot app that triages a support ticket with Jev (TypeSafe's System One model), gates the routing decision on confidence, and drafts a reply with an Anthropic chat model. A Jev judge and guardrail must approve that reply.
+Companion demo for the article **"Springing into Jev"**. One Spring Boot app that triages a support ticket with Jev (TypeSafe's System One model), gates the routing decision on confidence, and drafts a reply with an Anthropic chat model. A Jev judge and input/output checks must approve that reply.
 
-Stack: Spring Boot 4.0.7 · Spring AI 2.0.1 (BOM) · Spring AI TypeSafe 0.2.0 (`org.springaicommunity`) · Java 21 · Maven wrapper.
+Stack: Spring Boot 4.0.7 · Spring AI 2.1.0-SNAPSHOT (BOM, from `repo.spring.io/snapshot`) with `spring-ai-systemone` (the System One `DecisionModel`) · Java 21 · Maven wrapper.
 
 ## Commands
 
@@ -20,24 +20,22 @@ Required environment variables: `TYPESAFE_API_KEY` and `ANTHROPIC_API_KEY`. `ANT
 
 The app listens on port 8080 (`server.port` in `application.properties`). `README.md` and `tickets.http` also use 8080, so change all three together.
 
-Tests run without API keys. `src/test/resources/application.properties` supplies mock-key fallbacks and sets `supportdesk.demo.enabled=false`, so `DemoRunner` makes no live calls. Unit tests mock `TypeSafeClient` / `ChatClient`, using `Answers.RETURNS_DEEP_STUBS` to stub the fluent `prompt().user(..).call().content()` chain. `TicketControllerTest` is a `@WebMvcTest` that uses `@MockitoBean`.
+Tests run without API keys. `src/test/resources/application.properties` supplies mock-key fallbacks and sets `supportdesk.demo.enabled=false`, so `DemoRunner` makes no live calls. Unit tests mock `DecisionModel` / `ChatClient`, using `Answers.RETURNS_DEEP_STUBS` to stub the fluent `prompt().user(..).call().content()` chain. `TicketControllerTest` is a `@WebMvcTest` that uses `@MockitoBean`.
 
 ## Architecture
 
-Everything is in `com.example.supportdesk`. A request goes through two stages:
+Everything is in `com.example.supportdesk`. The 2.1 System One module has no auto-configuration and no judge, advisor or gate classes, so `JevConfig` declares `TypeSafeClient` and `DecisionModel` beans and the rest is plain code on top of `DecisionModel`. A request goes through two stages:
 
-1. **Triage** (`TriageService`): a single `typeSafe.systemOne(ticket, TicketQuestions.TRIAGE)` call asks three typed questions together: `is_urgent` (Noul, yes/no probability), `department` (Choice), and `frustration` (Score). Plain code then combines two of the answers into an action: `auto_close` if urgency < 0.2 and frustration < 0.5, otherwise `route_to_<department>`. `JevConfidenceGate` (floor 0.60; `auto_close` needs 0.90) turns the department confidence into a decision: `EXECUTE`, `CONFIRM` or `ESCALATE`.
-2. **Draft** (`SupportReplyConfig`): the `supportChatClient` bean wraps the Anthropic `ChatClient` in two advisors:
-   - `JevSelfRefineAdvisor`: re-drafts up to 3 times until the `supportReplyJudge` (`JevJudge`) passes. `failOnExhaustedAttempts(true)` makes it throw `JevSelfRefineFailedException` instead of returning its best attempt.
-   - `JevGuardrailAdvisor`: the default input and output guardrails.
+1. **Triage** (`TriageService`): a single `decisionModel.call(...)` asks three typed questions together (`TicketQuestions.TRIAGE`): `is_urgent` (`YesNoQuestion`), `department` (`ChoiceQuestion`) and `frustration` (`ScoreQuestion`, 3 levels; the level value is normalised to 0..1). Plain code combines two of the answers into an action: `auto_close` if urgency < 0.2 and frustration < 0.5, otherwise `route_to_<department>`. `ConfidenceGate` (floor 0.60; `auto_close` needs 0.90) turns the department confidence into `EXECUTE`, `CONFIRM` or `ESCALATE`.
+2. **Draft** (`ReplyDrafter`): drafts with the Anthropic `supportChatClient`, then asks `ReplyJudge` to review it. A failed review feeds the defects back and re-drafts, up to 3 attempts; then it throws `ReplyRejectedException` instead of returning its best attempt. Before drafting, `ReplyJudge.screenInput` refuses tickets that try to instruct the assistant.
 
-   The judge combines weighted Jev questions (`addresses_issue`, `no_unapproved_promise`, `tone`) with deterministic `.check(...)` lambdas. The lambdas run locally and are never sent to Jev. Put exact rules in `.check`, not in Jev questions.
+   `ReplyJudge` combines Jev questions (`addresses_issue`, `no_unapproved_promise`, `no_leak`, `tone`, each with a minimum) with a deterministic empty-reply check that runs locally and is never sent to Jev. Put exact rules in code, not in Jev questions.
 
 Entry points that use both stages:
-- `TicketController`: `POST /tickets` (`text/plain` body). `ESCALATE` returns no draft (`draft: null`). `JevSelfRefineFailedException` becomes `202 Accepted` with "Queued for a human: …".
+- `TicketController`: `POST /tickets` (`text/plain` body). `ESCALATE` returns no draft (`draft: null`). `ReplyRejectedException` becomes `202 Accepted` with "Queued for a human: …".
 - `DemoRunner`: a `CommandLineRunner` that triages and drafts `supportdesk.demo.ticket` at startup and logs the numbers the article quotes. It is gated by `supportdesk.demo.enabled`. Don't change the log block format without a reason: README asks readers to paste it back for the article.
 
-`spring.ai.typesafe.api-key` must be set in `application.properties`. The starter's auto-configuration is conditional on that property, so setting the environment variable alone does not create `TypeSafeClient`.
+`TypeSafeClient` is built from `spring.ai.typesafe.api-key`, which must be set in `application.properties`; setting the environment variable alone does not populate it.
 
 ## Conventions
 

@@ -1,16 +1,12 @@
 package com.example.supportdesk;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Answers;
 import org.mockito.Mockito;
-import org.springaicommunity.typesafe.advisor.JevSelfRefineFailedException;
-import org.springaicommunity.typesafe.judge.JevConfidenceGate.Decision;
-import org.springaicommunity.typesafe.judge.JevVerdict;
 
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,7 +19,7 @@ class DemoRunnerTest {
 
 	private TriageService triageService;
 
-	private ChatClient supportChatClient;
+	private ReplyDrafter drafter;
 
 	private static final String DEMO_TICKET = "Help! My payouts have been failing for 3 days.";
 
@@ -32,8 +28,8 @@ class DemoRunnerTest {
 	@BeforeEach
 	void setUp() {
 		this.triageService = Mockito.mock(TriageService.class);
-		this.supportChatClient = Mockito.mock(ChatClient.class, Answers.RETURNS_DEEP_STUBS);
-		this.demoRunner = new DemoRunner(this.triageService, this.supportChatClient, DEMO_TICKET);
+		this.drafter = Mockito.mock(ReplyDrafter.class);
+		this.demoRunner = new DemoRunner(this.triageService, this.drafter, DEMO_TICKET);
 	}
 
 	@Test
@@ -45,7 +41,7 @@ class DemoRunnerTest {
 				Map.of("technical", 0.50d),
 				0.70d,
 				0.80d,
-				Decision.ESCALATE,
+				ConfidenceGate.Decision.ESCALATE,
 				"jev-model",
 				20L
 		);
@@ -55,7 +51,7 @@ class DemoRunnerTest {
 		this.demoRunner.run();
 
 		verify(this.triageService).triage(DEMO_TICKET);
-		verifyNoInteractions(this.supportChatClient);
+		verifyNoInteractions(this.drafter);
 	}
 
 	@Test
@@ -67,18 +63,18 @@ class DemoRunnerTest {
 				Map.of("billing", 0.95d),
 				0.80d,
 				0.60d,
-				Decision.EXECUTE,
+				ConfidenceGate.Decision.EXECUTE,
 				"jev-model",
 				35L
 		);
 
 		when(this.triageService.triage(DEMO_TICKET)).thenReturn(triage);
-		when(this.supportChatClient.prompt().user(DEMO_TICKET).call().content()).thenReturn("Approved reply draft.");
+		when(this.drafter.draft(DEMO_TICKET)).thenReturn("Approved reply draft.");
 
 		this.demoRunner.run();
 
 		verify(this.triageService).triage(DEMO_TICKET);
-		verify(this.supportChatClient.prompt().user(DEMO_TICKET).call()).content();
+		verify(this.drafter).draft(DEMO_TICKET);
 	}
 
 	@Test
@@ -90,18 +86,18 @@ class DemoRunnerTest {
 				Map.of("feedback", 0.75d),
 				0.10d,
 				0.10d,
-				Decision.CONFIRM,
+				ConfidenceGate.Decision.CONFIRM,
 				"jev-model",
 				30L
 		);
 
 		when(this.triageService.triage(DEMO_TICKET)).thenReturn(triage);
-		when(this.supportChatClient.prompt().user(DEMO_TICKET).call().content()).thenReturn("Auto-close confirm draft.");
+		when(this.drafter.draft(DEMO_TICKET)).thenReturn("Auto-close confirm draft.");
 
 		this.demoRunner.run();
 
 		verify(this.triageService).triage(DEMO_TICKET);
-		verify(this.supportChatClient.prompt().user(DEMO_TICKET).call()).content();
+		verify(this.drafter).draft(DEMO_TICKET);
 	}
 
 	@Test
@@ -113,17 +109,16 @@ class DemoRunnerTest {
 				Map.of("billing", 0.90d),
 				0.80d,
 				0.70d,
-				Decision.EXECUTE,
+				ConfidenceGate.Decision.EXECUTE,
 				"jev-model",
 				40L
 		);
 
-		JevVerdict verdict = Mockito.mock(JevVerdict.class);
-		when(verdict.summary()).thenReturn("tone was inappropriate");
-		JevSelfRefineFailedException exception = new JevSelfRefineFailedException(3, verdict);
+		ReplyRejectedException exception = new ReplyRejectedException(
+				new ReplyJudge.Verdict(List.of("tone was inappropriate")));
 
 		when(this.triageService.triage(DEMO_TICKET)).thenReturn(triage);
-		when(this.supportChatClient.prompt().user(DEMO_TICKET).call().content()).thenThrow(exception);
+		when(this.drafter.draft(DEMO_TICKET)).thenThrow(exception);
 
 		assertThatCode(() -> this.demoRunner.run()).doesNotThrowAnyException();
 		verify(this.triageService).triage(DEMO_TICKET);
@@ -134,7 +129,7 @@ class DemoRunnerTest {
 		ApplicationContextRunner contextRunner = new ApplicationContextRunner()
 			.withUserConfiguration(DemoRunner.class)
 			.withBean(TriageService.class, () -> Mockito.mock(TriageService.class))
-			.withBean("supportChatClient", ChatClient.class, () -> Mockito.mock(ChatClient.class))
+			.withBean(ReplyDrafter.class, () -> Mockito.mock(ReplyDrafter.class))
 			.withPropertyValues("supportdesk.demo.ticket=test ticket");
 
 		contextRunner.withPropertyValues("supportdesk.demo.enabled=true")
@@ -149,7 +144,7 @@ class DemoRunnerTest {
 		ApplicationContextRunner contextRunner = new ApplicationContextRunner()
 			.withUserConfiguration(DemoRunner.class)
 			.withBean(TriageService.class, () -> Mockito.mock(TriageService.class))
-			.withBean("supportChatClient", ChatClient.class, () -> Mockito.mock(ChatClient.class))
+			.withBean(ReplyDrafter.class, () -> Mockito.mock(ReplyDrafter.class))
 			.withPropertyValues("supportdesk.demo.ticket=test ticket");
 
 		contextRunner.withPropertyValues("supportdesk.demo.enabled=false")

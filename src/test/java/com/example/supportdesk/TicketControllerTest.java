@@ -1,22 +1,16 @@
 package com.example.supportdesk;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.Answers;
-import org.mockito.Mockito;
-import org.springaicommunity.typesafe.advisor.JevSelfRefineFailedException;
-import org.springaicommunity.typesafe.judge.JevConfidenceGate.Decision;
-import org.springaicommunity.typesafe.judge.JevVerdict;
 
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -34,8 +28,8 @@ class TicketControllerTest {
 	@MockitoBean
 	private TriageService triageService;
 
-	@MockitoBean(name = "supportChatClient", answers = Answers.RETURNS_DEEP_STUBS)
-	private ChatClient supportChatClient;
+	@MockitoBean
+	private ReplyDrafter drafter;
 
 	@Test
 	void submitTicketWithExecuteDecisionReturnsDraft() throws Exception {
@@ -47,13 +41,13 @@ class TicketControllerTest {
 				Map.of("billing", 0.92d),
 				0.85d,
 				0.70d,
-				Decision.EXECUTE,
+				ConfidenceGate.Decision.EXECUTE,
 				"jev-model",
 				42L
 		);
 
 		when(this.triageService.triage(ticket)).thenReturn(triage);
-		when(this.supportChatClient.prompt().user(ticket).call().content()).thenReturn("Here is the draft reply.");
+		when(this.drafter.draft(ticket)).thenReturn("Here is the draft reply.");
 
 		this.mockMvc.perform(post("/tickets")
 				.contentType(MediaType.TEXT_PLAIN)
@@ -70,7 +64,7 @@ class TicketControllerTest {
 			.andExpect(jsonPath("$.draft").value("Here is the draft reply."));
 
 		verify(this.triageService).triage(ticket);
-		verify(this.supportChatClient.prompt().user(ticket).call()).content();
+		verify(this.drafter).draft(ticket);
 	}
 
 	@Test
@@ -83,13 +77,13 @@ class TicketControllerTest {
 				Map.of("feedback", 0.70d),
 				0.05d,
 				0.10d,
-				Decision.CONFIRM,
+				ConfidenceGate.Decision.CONFIRM,
 				"jev-model",
 				30L
 		);
 
 		when(this.triageService.triage(ticket)).thenReturn(triage);
-		when(this.supportChatClient.prompt().user(ticket).call().content()).thenReturn("Thanks for noticing!");
+		when(this.drafter.draft(ticket)).thenReturn("Thanks for noticing!");
 
 		this.mockMvc.perform(post("/tickets")
 				.contentType(MediaType.TEXT_PLAIN)
@@ -112,7 +106,7 @@ class TicketControllerTest {
 				Map.of("technical", 0.45d),
 				0.80d,
 				0.60d,
-				Decision.ESCALATE,
+				ConfidenceGate.Decision.ESCALATE,
 				"jev-model",
 				25L
 		);
@@ -128,7 +122,7 @@ class TicketControllerTest {
 			.andExpect(jsonPath("$.draft").doesNotExist());
 
 		verify(this.triageService).triage(ticket);
-		verifyNoInteractions(this.supportChatClient);
+		verifyNoInteractions(this.drafter);
 	}
 
 	@Test
@@ -141,17 +135,16 @@ class TicketControllerTest {
 				Map.of("billing", 0.88d),
 				0.90d,
 				0.95d,
-				Decision.EXECUTE,
+				ConfidenceGate.Decision.EXECUTE,
 				"jev-model",
 				50L
 		);
 
-		JevVerdict verdict = Mockito.mock(JevVerdict.class);
-		when(verdict.summary()).thenReturn("addresses_issue failed");
-		JevSelfRefineFailedException exception = new JevSelfRefineFailedException(3, verdict);
+		ReplyRejectedException exception = new ReplyRejectedException(
+				new ReplyJudge.Verdict(List.of("addresses_issue failed")));
 
 		when(this.triageService.triage(ticket)).thenReturn(triage);
-		when(this.supportChatClient.prompt().user(ticket).call().content()).thenThrow(exception);
+		when(this.drafter.draft(ticket)).thenThrow(exception);
 
 		this.mockMvc.perform(post("/tickets")
 				.contentType(MediaType.TEXT_PLAIN)

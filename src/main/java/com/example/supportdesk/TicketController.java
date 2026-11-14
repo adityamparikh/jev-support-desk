@@ -1,8 +1,5 @@
 package com.example.supportdesk;
 
-import org.springaicommunity.typesafe.advisor.JevSelfRefineFailedException;
-
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,25 +14,25 @@ class TicketController {
 
 	private final TriageService triage;
 
-	private final ChatClient supportChatClient;
+	private final ReplyDrafter drafter;
 
-	TicketController(TriageService triage, ChatClient supportChatClient) {
+	TicketController(TriageService triage, ReplyDrafter drafter) {
 		this.triage = triage;
-		this.supportChatClient = supportChatClient;
+		this.drafter = drafter;
 	}
 
 	@PostMapping(consumes = MediaType.TEXT_PLAIN_VALUE)
 	TicketResult submit(@RequestBody String ticket) {
 		TriageService.Triage t = this.triage.triage(ticket);
 		String draft = switch (t.decision()) {
-			case EXECUTE, CONFIRM -> this.supportChatClient.prompt().user(ticket).call().content();
+			case EXECUTE, CONFIRM -> this.drafter.draft(ticket);
 			case ESCALATE -> null; // a human writes this one
 		};
 		return new TicketResult(t, draft);
 	}
 
-	@ExceptionHandler(JevSelfRefineFailedException.class)
-	ResponseEntity<String> judgeGaveUp(JevSelfRefineFailedException e) {
+	@ExceptionHandler(ReplyRejectedException.class)
+	ResponseEntity<String> judgeGaveUp(ReplyRejectedException e) {
 		return ResponseEntity.accepted().body("Queued for a human: " + e.verdict().summary());
 	}
 

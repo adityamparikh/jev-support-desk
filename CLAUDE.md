@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Companion demo for the article **"Springing into Jev"**. One Spring Boot app that triages a support ticket with Jev (TypeSafe's System One model), gates the routing decision on confidence, and drafts a reply with an Anthropic chat model. A Jev judge and input/output checks must approve that reply.
 
-Stack: Spring Boot 4.2.0-RC2 · Spring AI 2.1.0-RC2 (BOM, a pre-release on Maven Central) with `spring-ai-systemone` (the System One `DecisionModel`) · Java 21 · Maven wrapper.
+Stack: Spring Boot 4.2.0-RC2 · Spring AI 2.1.0 (released BOM from Maven Central) with `spring-ai-systemone` (the System One `DecisionModel` and its `SystemOneClient`) · Java 21 · Maven wrapper.
+
+No snapshot dependencies: `maven-enforcer-plugin` (`requireReleaseDeps`) fails the build if one comes back. The app used to track `2.1.0-SNAPSHOT`, and the 2026-11-15 snapshot removed `typesafe-java-sdk` (`org.springaicommunity.typesafe.TypeSafeClient`) and broke a clean checkout.
 
 ## Commands
 
@@ -24,7 +26,7 @@ Tests run without API keys. `src/test/resources/application.properties` supplies
 
 ## Architecture
 
-Everything is in `com.example.supportdesk`. The 2.1 System One module has no auto-configuration and no judge, advisor or gate classes, so `JevConfig` declares `TypeSafeClient` and `DecisionModel` beans and the rest is plain code on top of `DecisionModel`. A request goes through two stages:
+Everything is in `com.example.supportdesk`. The app depends on `spring-ai-systemone` only, not on its starter, so there is no auto-configuration; the module also has no judge, advisor or gate classes. `JevConfig` declares the `SystemOneClient` (`org.springframework.ai.systemone.api`) and `DecisionModel` beans and the rest is plain code on top of `DecisionModel`. A request goes through two stages:
 
 1. **Triage** (`TriageService`): a single `decisionModel.call(...)` asks three typed questions together (`TicketQuestions.TRIAGE`): `is_urgent` (`YesNoQuestion`), `department` (`ChoiceQuestion`) and `frustration` (`ScoreQuestion`, 3 levels; the level value is normalised to 0..1). Plain code combines two of the answers into an action: `auto_close` if urgency < 0.2 and frustration < 0.5, otherwise `route_to_<department>`. `ConfidenceGate` (floor 0.60; `auto_close` needs 0.90) turns the department confidence into `EXECUTE`, `CONFIRM` or `ESCALATE`.
 2. **Draft** (`ReplyDrafter`): drafts with the Anthropic `supportChatClient`, then asks `ReplyJudge` to review it. A failed review feeds the defects back and re-drafts, up to 3 attempts; then it throws `ReplyRejectedException` instead of returning its best attempt. Before drafting, `ReplyJudge.screenInput` refuses tickets that try to instruct the assistant.
@@ -35,7 +37,7 @@ Entry points that use both stages:
 - `TicketController`: `POST /tickets` (`text/plain` body). `ESCALATE` returns no draft (`draft: null`). `ReplyRejectedException` becomes `202 Accepted` with "Queued for a human: …".
 - `DemoRunner`: a `CommandLineRunner` that triages and drafts `supportdesk.demo.ticket` at startup and logs the numbers the article quotes. It is gated by `supportdesk.demo.enabled`. Don't change the log block format without a reason: README asks readers to paste it back for the article.
 
-`TypeSafeClient` is built from `spring.ai.typesafe.api-key`, which must be set in `application.properties`; setting the environment variable alone does not populate it.
+`SystemOneClient` is built from `spring.ai.typesafe.api-key`, which must be set in `application.properties`; setting the environment variable alone does not populate it.
 
 ## Conventions
 

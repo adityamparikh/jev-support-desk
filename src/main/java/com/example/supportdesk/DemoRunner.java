@@ -10,10 +10,11 @@ import org.springframework.stereotype.Component;
 
 /**
  * Triages and drafts a reply for one ticket at startup, logging every number the
- * article quotes. Disable with {@code supportdesk.demo.enabled=false}.
+ * article quotes. Each run makes paid TypeSafe and Anthropic calls, so it is off unless
+ * {@code supportdesk.demo.enabled=true} is set (ADR 0005).
  */
 @Component
-@ConditionalOnProperty(name = "supportdesk.demo.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "supportdesk.demo.enabled", havingValue = "true")
 class DemoRunner implements CommandLineRunner {
 
 	private static final Log logger = LogFactory.getLog(DemoRunner.class);

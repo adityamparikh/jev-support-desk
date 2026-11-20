@@ -34,3 +34,11 @@ build/
 
 ### macOS ###
 .DS_Store
+
+### Secrets ###
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12

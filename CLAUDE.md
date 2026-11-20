@@ -26,9 +26,20 @@ No snapshot dependencies: `maven-enforcer-plugin` (`requireReleaseDeps`) fails t
 
 Required environment variables: `TYPESAFE_API_KEY` and `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` is optional and defaults to `claude-sonnet-5`. If either key is missing, startup fails on purpose with an unresolved placeholder.
 
+`.env.example` shows the variables; copy it to `.env` (ignored) and `set -a; source .env; set +a`. Nothing loads `.env` automatically.
+
+## Ask before
+
+Each of these spends money or exposes a key. Ask the user first, every time, and say what it will cost (one ticket = 1 triage + 1 input screen + up to 3 Anthropic drafts + 3 judge calls). `.claude/settings.json` makes Claude Code prompt for the commands.
+
+- `./mvnw spring-boot:run` (or `java -jar target/*.jar`) when `TYPESAFE_API_KEY` / `ANTHROPIC_API_KEY` are set. Startup alone is free since the demo is off by default; with `--supportdesk.demo.enabled=true` it makes the calls above at once.
+- Any request in `tickets.http`, or `curl ... localhost:8080/tickets`, against a running app with real keys: one ticket per request.
+- Setting `supportdesk.demo.enabled=true` anywhere committed. It stays `false` in `src/main/resources/application.properties` (ADR 0005; `DemoRunnerTest` checks it).
+- Never print, echo, copy, log or commit a key value, and never read `.idea/workspace.xml` or `.env`: the IntelliJ run configuration stores the live keys in plain text.
+
 The app listens on port 8080 (`server.port` in `application.properties`). `README.md` and `tickets.http` also use 8080, so change all three together.
 
-Tests run without API keys. `src/test/resources/application.properties` supplies mock-key fallbacks and sets `supportdesk.demo.enabled=false`, so `DemoRunner` makes no live calls. Unit tests mock `DecisionModel` / `ChatClient`, using `Answers.RETURNS_DEEP_STUBS` to stub the fluent `prompt().user(..).call().content()` chain. `TicketControllerTest` is a `@WebMvcTest` that uses `@MockitoBean`.
+Tests run without API keys. `src/test/resources/application.properties` supplies mock-key fallbacks and sets `supportdesk.demo.enabled=false`, so `DemoRunner` makes no live calls. Run every build with the keys unset: `env -u TYPESAFE_API_KEY -u ANTHROPIC_API_KEY ./mvnw install`. Unit tests mock `DecisionModel` / `ChatClient`, using `Answers.RETURNS_DEEP_STUBS` to stub the fluent `prompt().user(..).call().content()` chain. `TicketControllerTest` is a `@WebMvcTest` that uses `@MockitoBean`.
 
 ## Architecture
 
@@ -41,7 +52,7 @@ Everything is in `com.example.supportdesk`. The app depends on `spring-ai-system
 
 Entry points that use both stages:
 - `TicketController`: `POST /tickets` (`text/plain` body). `ESCALATE` returns no draft (`draft: null`). `ReplyRejectedException` becomes `202 Accepted` with "Queued for a human: …".
-- `DemoRunner`: a `CommandLineRunner` that triages and drafts `supportdesk.demo.ticket` at startup and logs the numbers the article quotes. It is gated by `supportdesk.demo.enabled`. Don't change the log block format without a reason: README asks readers to paste it back for the article.
+- `DemoRunner`: a `CommandLineRunner` that triages and drafts `supportdesk.demo.ticket` at startup and logs the numbers the article quotes. It runs only when `supportdesk.demo.enabled=true` (off by default; `matchIfMissing` is false). Don't change the log block format without a reason: README asks readers to paste it back for the article.
 
 `SystemOneClient` is built from `spring.ai.typesafe.api-key`, which must be set in `application.properties`; setting the environment variable alone does not populate it.
 

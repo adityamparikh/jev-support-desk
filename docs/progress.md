@@ -8,12 +8,12 @@ lasting reasons move to `docs/adr/`; planned changes get a spec in `docs/specs/`
 
 - 2026-11-20, branch `aine-readiness`: build green again on Spring AI 2.1.0 (released)
   with `SystemOneClient` (ADR 0004); ADRs 0001-0003 and spec 0001 recorded
-  retrospectively.
+  retrospectively; spec 0002 shipped (demo opt-in, `.env` ignore rules and
+  `.env.example`, ask-before list, `.claude/settings.json`).
 
 ## In progress
 
-- Spec 0002 (safe-by-default startup, secrets hygiene) and spec 0003 (CI, format,
-  checkstyle, gitleaks, Dependabot).
+- Spec 0003 (CI, format, checkstyle, gitleaks, Dependabot).
 
 ## Open questions (owner decides)
 

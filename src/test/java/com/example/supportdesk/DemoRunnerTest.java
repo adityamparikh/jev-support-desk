@@ -1,6 +1,11 @@
 package com.example.supportdesk;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Properties;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -125,30 +130,37 @@ class DemoRunnerTest {
 	}
 
 	@Test
-	void demoRunnerConfiguredWhenEnabledOrMissing() {
-		ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withUserConfiguration(DemoRunner.class)
-			.withBean(TriageService.class, () -> Mockito.mock(TriageService.class))
-			.withBean(ReplyDrafter.class, () -> Mockito.mock(ReplyDrafter.class))
-			.withPropertyValues("supportdesk.demo.ticket=test ticket");
-
-		contextRunner.withPropertyValues("supportdesk.demo.enabled=true")
-			.run(context -> assertThat(context).hasSingleBean(DemoRunner.class));
-
-		contextRunner
+	void demoRunnerConfiguredOnlyWhenEnabled() {
+		contextRunner().withPropertyValues("supportdesk.demo.enabled=true")
 			.run(context -> assertThat(context).hasSingleBean(DemoRunner.class));
 	}
 
 	@Test
+	void demoRunnerNotConfiguredWhenPropertyMissing() {
+		contextRunner().run(context -> assertThat(context).doesNotHaveBean(DemoRunner.class));
+	}
+
+	@Test
 	void demoRunnerNotConfiguredWhenDisabled() {
-		ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withUserConfiguration(DemoRunner.class)
+		contextRunner().withPropertyValues("supportdesk.demo.enabled=false")
+			.run(context -> assertThat(context).doesNotHaveBean(DemoRunner.class));
+	}
+
+	@Test
+	void shippedApplicationPropertiesKeepDemoOff() throws IOException {
+		// The test classpath overrides application.properties, so read the shipped file.
+		Properties shipped = new Properties();
+		try (InputStream in = Files.newInputStream(Path.of("src/main/resources/application.properties"))) {
+			shipped.load(in);
+		}
+		assertThat(shipped.getProperty("supportdesk.demo.enabled")).isEqualTo("false");
+	}
+
+	private static ApplicationContextRunner contextRunner() {
+		return new ApplicationContextRunner().withUserConfiguration(DemoRunner.class)
 			.withBean(TriageService.class, () -> Mockito.mock(TriageService.class))
 			.withBean(ReplyDrafter.class, () -> Mockito.mock(ReplyDrafter.class))
 			.withPropertyValues("supportdesk.demo.ticket=test ticket");
-
-		contextRunner.withPropertyValues("supportdesk.demo.enabled=false")
-			.run(context -> assertThat(context).doesNotHaveBean(DemoRunner.class));
 	}
 
 }

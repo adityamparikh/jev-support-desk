@@ -4,7 +4,7 @@ Companion project for **Springing into Jev**. One Spring Boot app that triages a
 ticket with Jev, gates routing on confidence, and drafts a reply with a chat model that a
 Jev judge and guardrail must pass.
 
-Spring Boot 4.0.7 · Spring AI 2.0.1 · Spring AI TypeSafe 0.2.0 · Java 21
+Spring Boot 4.2.0 · Spring AI 2.1.0 · Spring AI TypeSafe 0.2.0 · Java 21
 
 ## Run in IntelliJ IDEA
 

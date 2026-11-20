@@ -19,6 +19,9 @@
 	<properties>
 		<java.version>21</java.version>
 		<spring-ai.version>2.1.0</spring-ai.version>
+		<spring-javaformat.version>0.0.48</spring-javaformat.version>
+		<checkstyle.version>10.26.1</checkstyle.version>
+		<maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
 	</properties>
 
 	<dependencies>
@@ -86,6 +89,55 @@
 									<version>[21,)</version>
 								</requireJavaVersion>
 							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<!-- Formatter check: ./mvnw spring-javaformat:apply fixes what this rejects -->
+				<groupId>io.spring.javaformat</groupId>
+				<artifactId>spring-javaformat-maven-plugin</artifactId>
+				<version>${spring-javaformat.version}</version>
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<inherited>true</inherited>
+						<goals>
+							<goal>validate</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<!-- Linter: Spring source style rules, main and test code -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>${maven-checkstyle-plugin.version}</version>
+				<dependencies>
+					<dependency>
+						<groupId>com.puppycrawl.tools</groupId>
+						<artifactId>checkstyle</artifactId>
+						<version>${checkstyle.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>io.spring.javaformat</groupId>
+						<artifactId>spring-javaformat-checkstyle</artifactId>
+						<version>${spring-javaformat.version}</version>
+					</dependency>
+				</dependencies>
+				<executions>
+					<execution>
+						<id>checkstyle-validation</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<configLocation>config/checkstyle/checkstyle.xml</configLocation>
+							<includeTestSourceDirectory>true</includeTestSourceDirectory>
+							<consoleOutput>true</consoleOutput>
+							<failsOnError>true</failsOnError>
+							<violationSeverity>warning</violationSeverity>
 						</configuration>
 					</execution>
 				</executions>

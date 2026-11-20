@@ -21,8 +21,8 @@ class TicketQuestionsTest {
 
 		DecisionQuestion department = TicketQuestions.TRIAGE.get("department");
 		assertThat(department).isInstanceOf(ChoiceQuestion.class);
-		assertThat(((ChoiceQuestion) department).getOptionNames())
-			.containsExactlyInAnyOrder("billing", "technical", "sales", "feedback");
+		assertThat(((ChoiceQuestion) department).getOptionNames()).containsExactlyInAnyOrder("billing", "technical",
+				"sales", "feedback");
 
 		DecisionQuestion frustration = TicketQuestions.TRIAGE.get("frustration");
 		assertThat(frustration).isInstanceOf(ScoreQuestion.class);

@@ -1,7 +1,8 @@
 package com.example.supportdesk;
 
 /**
- * Thrown when no draft passed review, or the ticket itself was refused. A human takes over.
+ * Thrown when no draft passed review, or the ticket itself was refused. A human takes
+ * over.
  */
 class ReplyRejectedException extends RuntimeException {
 

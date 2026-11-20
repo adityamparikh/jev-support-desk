@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Companion demo for the article **"Springing into Jev"**. One Spring Boot app that triages a support ticket with Jev (TypeSafe's System One model), gates the routing decision on confidence, and drafts a reply with an Anthropic chat model. A Jev judge and guardrail must approve that reply.
 
-Stack: Spring Boot 4.0.7 · Spring AI 2.0.1 (BOM) · Spring AI TypeSafe 0.2.0 (`org.springaicommunity`) · Java 21 · Maven wrapper.
+Stack: Spring Boot 4.2.0 · Spring AI 2.1.0 (BOM) · Spring AI TypeSafe 0.2.0 (`org.springaicommunity`) · Java 21 · Maven wrapper.
 
 ## Commands
 

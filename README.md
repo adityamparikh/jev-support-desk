@@ -42,8 +42,9 @@ of the triage and drafting pipeline, see [CLAUDE.md](CLAUDE.md).
 ./mvnw install
 ```
 
-Runs every check (dependency rules, compile, all tests) and needs no API keys: the tests
-mock both models. Design notes and decisions are in [docs/adr](docs/adr), specs in
+Runs every check (dependency rules, formatting, checkstyle, compile, all tests) and needs
+no API keys: the tests mock both models. `./mvnw spring-javaformat:apply` fixes
+formatting. CI runs the same command on every pull request. Design notes and decisions are in [docs/adr](docs/adr), specs in
 [docs/specs](docs/specs).
 
 ## For the article

@@ -1,0 +1,60 @@
+name: CI
+
+# Runs before a change lands (pull_request), after it lands (push to main), and nightly so
+# that upstream drift (a dependency release, a JDK image change) shows up the day it
+# happens rather than on the next commit. See docs/specs/0003-verification-gates.md.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # The one command that runs every check: enforcer (no snapshot deps, JDK >= 21),
+      # spring-javaformat:validate, checkstyle, compile, and all tests. No API keys are
+      # set here on purpose: the tests mock both models and CI must never spend.
+      - name: ./mvnw -B install
+        run: ./mvnw -B install
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -19,14 +19,21 @@ No snapshot dependencies: `maven-enforcer-plugin` (`requireReleaseDeps`) fails t
 ## Commands
 
 ```bash
-./mvnw install                      # full build + tests (required after any change)
-./mvnw spring-boot:run              # run the app (needs env vars below)
+./mvnw install                      # every check + all tests (required after any change)
+./mvnw spring-javaformat:apply      # fix formatting before install rejects it
+./mvnw spring-boot:run              # run the app (needs env vars below; see "Ask before")
 ./mvnw test -Dtest=ClassName#method # single test
 ```
+
+`./mvnw install` is the whole gauntlet, in order: `maven-enforcer-plugin` (no snapshot dependencies, JDK 21+), `spring-javaformat:validate`, `checkstyle:check` (Spring rules from `config/checkstyle/checkstyle.xml`, main and test code; that file says which rules are excluded and why), compile, then all tests. CI (`.github/workflows/ci.yml`) runs exactly this on Temurin 21 for every pull request, on push to `main` and nightly, plus a gitleaks scan. JDK: `.sdkmanrc` pins `21.0.5-tem` (`sdk env`); the wrapper pins Maven 3.9.16 with a SHA-256.
 
 Required environment variables: `TYPESAFE_API_KEY` and `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` is optional and defaults to `claude-sonnet-5`. If either key is missing, startup fails on purpose with an unresolved placeholder.
 
 `.env.example` shows the variables; copy it to `.env` (ignored) and `set -a; source .env; set +a`. Nothing loads `.env` automatically.
+
+The app listens on port 8080 (`server.port` in `application.properties`). `README.md` and `tickets.http` also use 8080, so change all three together.
+
+Tests run without API keys. `src/test/resources/application.properties` supplies mock-key fallbacks and sets `supportdesk.demo.enabled=false`, so `DemoRunner` makes no live calls. Run every build with the keys unset: `env -u TYPESAFE_API_KEY -u ANTHROPIC_API_KEY ./mvnw install`. Unit tests mock `DecisionModel` / `ChatClient`, using `Answers.RETURNS_DEEP_STUBS` to stub the fluent `prompt().user(..).call().content()` chain. `TicketControllerTest` is a `@WebMvcTest` that uses `@MockitoBean`.
 
 ## Ask before
 
@@ -36,10 +43,6 @@ Each of these spends money or exposes a key. Ask the user first, every time, and
 - Any request in `tickets.http`, or `curl ... localhost:8080/tickets`, against a running app with real keys: one ticket per request.
 - Setting `supportdesk.demo.enabled=true` anywhere committed. It stays `false` in `src/main/resources/application.properties` (ADR 0005; `DemoRunnerTest` checks it).
 - Never print, echo, copy, log or commit a key value, and never read `.idea/workspace.xml` or `.env`: the IntelliJ run configuration stores the live keys in plain text.
-
-The app listens on port 8080 (`server.port` in `application.properties`). `README.md` and `tickets.http` also use 8080, so change all three together.
-
-Tests run without API keys. `src/test/resources/application.properties` supplies mock-key fallbacks and sets `supportdesk.demo.enabled=false`, so `DemoRunner` makes no live calls. Run every build with the keys unset: `env -u TYPESAFE_API_KEY -u ANTHROPIC_API_KEY ./mvnw install`. Unit tests mock `DecisionModel` / `ChatClient`, using `Answers.RETURNS_DEEP_STUBS` to stub the fluent `prompt().user(..).call().content()` chain. `TicketControllerTest` is a `@WebMvcTest` that uses `@MockitoBean`.
 
 ## Architecture
 
@@ -58,6 +61,6 @@ Entry points that use both stages:
 
 ## Conventions
 
-- Spring Framework source style: tab indentation, a blank line after the class declaration and before the closing brace, and a separate import group for `org.springframework.*`. Classes are package-private unless another class needs them.
+- Spring Framework source style, enforced by spring-javaformat and checkstyle: tab indentation, a blank line after the class declaration and before the closing brace, and a separate import group for `org.springframework.*`. Classes are package-private unless another class needs them.
 - Use `org.apache.commons.logging.Log` / `LogFactory` for logging, as the existing code does.
 - `tickets.http` has IntelliJ HTTP-client requests for manual testing.

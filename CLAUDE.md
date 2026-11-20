@@ -10,6 +10,12 @@ Stack: Spring Boot 4.2.0-RC2 · Spring AI 2.1.0 (released BOM from Maven Central
 
 No snapshot dependencies: `maven-enforcer-plugin` (`requireReleaseDeps`) fails the build if one comes back. The app used to track `2.1.0-SNAPSHOT`, and the 2026-11-15 snapshot removed `typesafe-java-sdk` (`org.springaicommunity.typesafe.TypeSafeClient`) and broke a clean checkout.
 
+## Start here
+
+- `docs/progress.md`: what is in flight, open questions, what is next. Read it first; update it before you end a session.
+- `docs/adr/`: why the system is built the way it is (gate thresholds, judge minimums, 3-draft limit, released dependencies only, opt-in demo). Read the matching ADR before changing one of those.
+- `docs/specs/`: one spec per change, from `docs/specs/TEMPLATE.md`, with checkable acceptance criteria. Write one before a non-trivial change and reference it in the commit message.
+
 ## Commands
 
 ```bash

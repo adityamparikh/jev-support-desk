@@ -13,7 +13,8 @@ class TicketQuestionsTest {
 
 	@Test
 	void triageMapContainsExpectedQuestions() {
-		assertThat(TicketQuestions.TRIAGE).containsOnlyKeys("is_urgent", "department", "frustration");
+		// Questions are sent in map order, and order can change an answer: keep it fixed.
+		assertThat(TicketQuestions.TRIAGE.keySet()).containsExactly("is_urgent", "department", "frustration");
 
 		DecisionQuestion urgent = TicketQuestions.TRIAGE.get("is_urgent");
 		assertThat(urgent).isInstanceOf(YesNoQuestion.class);

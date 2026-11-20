@@ -32,6 +32,16 @@ If either variable is missing, startup fails with an unresolved placeholder. Tha
 To skip the startup demo, set `supportdesk.demo.enabled=false`. For a code-level walkthrough
 of the triage and drafting pipeline, see [CLAUDE.md](CLAUDE.md).
 
+## Build and test
+
+```bash
+./mvnw install
+```
+
+Runs every check (dependency rules, compile, all tests) and needs no API keys: the tests
+mock both models. Design notes and decisions are in [docs/adr](docs/adr), specs in
+[docs/specs](docs/specs).
+
 ## For the article
 
 Paste back the startup log block (Ticket … action) plus the approved draft, and the JSON

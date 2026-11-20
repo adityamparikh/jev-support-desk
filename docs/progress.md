@@ -12,6 +12,7 @@ lasting reasons move to `docs/adr/`; planned changes get a spec in `docs/specs/`
   `.env.example`, ask-before list, `.claude/settings.json`); spec 0003 shipped in the
   repo (CI workflow, spring-javaformat, checkstyle, gitleaks, Dependabot, `.sdkmanrc`,
   wrapper SHA-256). The workflow has not run on GitHub yet: nothing is pushed.
+  `.claude/commands/review.md` and `run-demo.md` added.
 
 ## Open questions (owner decides)
 

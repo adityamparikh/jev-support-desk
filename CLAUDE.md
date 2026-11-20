@@ -14,6 +14,7 @@ No snapshot dependencies: `maven-enforcer-plugin` (`requireReleaseDeps`) fails t
 
 - `docs/progress.md`: what is in flight, open questions, what is next. Read it first; update it before you end a session.
 - `docs/adr/`: why the system is built the way it is (gate thresholds, judge minimums, 3-draft limit, released dependencies only, opt-in demo). Read the matching ADR before changing one of those.
+- `.claude/commands/`: `/review` checks a diff against the invariants below before it lands; `/run-demo` does the paid live run once, after asking.
 - `docs/specs/`: one spec per change, from `docs/specs/TEMPLATE.md`, with checkable acceptance criteria. Write one before a non-trivial change and reference it in the commit message.
 
 ## Commands

@@ -16,10 +16,9 @@ lasting reasons move to `docs/adr/`; planned changes get a spec in `docs/specs/`
 
 ## Open questions (owner decides)
 
-- Spring Boot 4.0.7 vs 4.2.x. Spring AI 2.1.0 is built against Boot 4.2.0 / Framework
-  7.1.0; this app resolves Framework 7.0.8. Tests and the context-load test pass. Before
-  the next article run, either move `spring-boot-starter-parent` to 4.2.x or do one live
-  run (`--supportdesk.demo.enabled=true`) on the current mix and record the result here.
+- Resolved: the base branch moved to Spring Boot 4.2.0-RC2, which matches the Boot 4.2 /
+  Framework 7.1 line Spring AI 2.1.0 is built against. A live run
+  (`--supportdesk.demo.enabled=true`) has not been repeated on it yet.
 - Uncommitted Kotlin build config in the main checkout's `pom.xml`
   (`kotlin-maven-plugin` 2.2.0, no `src/main/kotlin` yet): intended or abandoned? If it
   lands, add Kotlin to CLAUDE.md's stack line and check it against the checkstyle and

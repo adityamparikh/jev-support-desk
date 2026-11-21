@@ -24,7 +24,6 @@ Spring AI 2.1.0 was released to Maven Central on 2026-11-19.
 ## Consequences
 
 - Upgrades are explicit commits (Dependabot proposes them weekly).
-- Spring AI 2.1.0 is built against Spring Boot 4.2.0 / Spring Framework 7.1.0, and this
-  app is still on Boot 4.0.7, which resolves Framework 7.0.8. The unit tests and the
-  context-load test pass on that mix; a live Jev call has not been run on it. Moving to
-  Boot 4.2.x is open (see `docs/progress.md`).
+- Spring AI 2.1.0 is built against Spring Boot 4.2 / Spring Framework 7.1, and the
+  app is on Boot 4.2.0-RC2, so the two lines match. `requireReleaseDeps` allows release
+  candidates; it only rejects snapshots.

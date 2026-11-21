@@ -11,7 +11,8 @@ Stack: Spring Boot 4.0.7 · Spring AI 2.0.1 (BOM) · Spring AI TypeSafe 0.2.0 (`
 ## Commands
 
 ```bash
-./mvnw install                      # full build + tests (required after any change)
+./mvnw install                      # full build + tests + coverage floor (required after any change)
+./mvnw verify                       # what CI runs on every PR (.github/workflows/build.yml)
 ./mvnw spring-boot:run              # run the app (needs env vars below)
 ./mvnw test -Dtest=ClassName#method # single test
 ```
@@ -44,3 +45,10 @@ Entry points that use both stages:
 - Spring Framework source style: tab indentation, a blank line after the class declaration and before the closing brace, and a separate import group for `org.springframework.*`. Classes are package-private unless another class needs them.
 - Use `org.apache.commons.logging.Log` / `LogFactory` for logging, as the existing code does.
 - `tickets.http` has IntelliJ HTTP-client requests for manual testing.
+
+## Build gates
+
+`verify` (and so `install`) fails the build when either of these is broken. CI runs it on every pull request.
+
+- **Architecture** (`ArchitectureTest`, ArchUnit): enforces the conventions above. Only `SupportDeskApplication` and `TriageService` may be public. No logging API other than commons-logging is allowed. The triage classes must not depend on the chat model. No `@Autowired` field injection. If you need a new public class, add it to the allowlist in that test deliberately.
+- **Coverage** (`jacoco:check`): a line-coverage floor, `coverage.line.minimum` in `pom.xml`. The floor sits below the measured coverage on purpose. Add tests rather than lowering it. The report is at `target/site/jacoco/index.html`.

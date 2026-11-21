@@ -22,24 +22,27 @@ final class TicketQuestions {
 
 	static {
 		Map<String, DecisionQuestion> questions = new LinkedHashMap<>();
-		questions.put("is_urgent", YesNoQuestion.builder()
-			.text("Does this message convey urgency or time-sensitivity?")
-			.whenYes("Explicitly time-sensitive, or describes an ongoing loss")
-			.whenNo("No urgency expressed")
-			.build());
-		questions.put("department", ChoiceQuestion.builder()
-			.text("Which team should handle this?")
-			.option("billing", "Payments, invoicing, refunds, payouts")
-			.option("technical", "Bugs, outages, integrations that do not work")
-			.option("sales", "Pricing, upgrades, new accounts")
-			.option("feedback", "Praise, suggestions, anything needing no action")
-			.build());
-		questions.put("frustration", ScoreQuestion.builder()
-			.text("How frustrated does the customer appear?")
-			.level("Calm, just stating facts")
-			.level("Frustrated but civil")
-			.level("Very angry, strong language")
-			.build());
+		questions.put("is_urgent",
+				YesNoQuestion.builder()
+					.text("Does this message convey urgency or time-sensitivity?")
+					.whenYes("Explicitly time-sensitive, or describes an ongoing loss")
+					.whenNo("No urgency expressed")
+					.build());
+		questions.put("department",
+				ChoiceQuestion.builder()
+					.text("Which team should handle this?")
+					.option("billing", "Payments, invoicing, refunds, payouts")
+					.option("technical", "Bugs, outages, integrations that do not work")
+					.option("sales", "Pricing, upgrades, new accounts")
+					.option("feedback", "Praise, suggestions, anything needing no action")
+					.build());
+		questions.put("frustration",
+				ScoreQuestion.builder()
+					.text("How frustrated does the customer appear?")
+					.level("Calm, just stating facts")
+					.level("Frustrated but civil")
+					.level("Very angry, strong language")
+					.build());
 		TRIAGE = Collections.unmodifiableMap(questions);
 	}
 

@@ -1,7 +1,12 @@
 package com.example.supportdesk;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,17 +39,8 @@ class DemoRunnerTest {
 
 	@Test
 	void runWhenDecisionIsEscalateDoesNotCallChatClient() {
-		TriageService.Triage triage = new TriageService.Triage(
-				"route_to_technical",
-				"technical",
-				0.50d,
-				Map.of("technical", 0.50d),
-				0.70d,
-				0.80d,
-				ConfidenceGate.Decision.ESCALATE,
-				"jev-model",
-				20L
-		);
+		TriageService.Triage triage = new TriageService.Triage("route_to_technical", "technical", 0.50d,
+				Map.of("technical", 0.50d), 0.70d, 0.80d, ConfidenceGate.Decision.ESCALATE, "jev-model", 20L);
 
 		when(this.triageService.triage(DEMO_TICKET)).thenReturn(triage);
 
@@ -56,17 +52,8 @@ class DemoRunnerTest {
 
 	@Test
 	void runWhenDecisionIsExecuteCallsChatClientAndLogsDraft() {
-		TriageService.Triage triage = new TriageService.Triage(
-				"route_to_billing",
-				"billing",
-				0.95d,
-				Map.of("billing", 0.95d),
-				0.80d,
-				0.60d,
-				ConfidenceGate.Decision.EXECUTE,
-				"jev-model",
-				35L
-		);
+		TriageService.Triage triage = new TriageService.Triage("route_to_billing", "billing", 0.95d,
+				Map.of("billing", 0.95d), 0.80d, 0.60d, ConfidenceGate.Decision.EXECUTE, "jev-model", 35L);
 
 		when(this.triageService.triage(DEMO_TICKET)).thenReturn(triage);
 		when(this.drafter.draft(DEMO_TICKET)).thenReturn("Approved reply draft.");
@@ -79,17 +66,8 @@ class DemoRunnerTest {
 
 	@Test
 	void runWhenDecisionIsConfirmCallsChatClient() {
-		TriageService.Triage triage = new TriageService.Triage(
-				"auto_close",
-				"feedback",
-				0.75d,
-				Map.of("feedback", 0.75d),
-				0.10d,
-				0.10d,
-				ConfidenceGate.Decision.CONFIRM,
-				"jev-model",
-				30L
-		);
+		TriageService.Triage triage = new TriageService.Triage("auto_close", "feedback", 0.75d,
+				Map.of("feedback", 0.75d), 0.10d, 0.10d, ConfidenceGate.Decision.CONFIRM, "jev-model", 30L);
 
 		when(this.triageService.triage(DEMO_TICKET)).thenReturn(triage);
 		when(this.drafter.draft(DEMO_TICKET)).thenReturn("Auto-close confirm draft.");
@@ -102,17 +80,8 @@ class DemoRunnerTest {
 
 	@Test
 	void runWhenChatClientThrowsRefineFailedExceptionCatchesGracefully() {
-		TriageService.Triage triage = new TriageService.Triage(
-				"route_to_billing",
-				"billing",
-				0.90d,
-				Map.of("billing", 0.90d),
-				0.80d,
-				0.70d,
-				ConfidenceGate.Decision.EXECUTE,
-				"jev-model",
-				40L
-		);
+		TriageService.Triage triage = new TriageService.Triage("route_to_billing", "billing", 0.90d,
+				Map.of("billing", 0.90d), 0.80d, 0.70d, ConfidenceGate.Decision.EXECUTE, "jev-model", 40L);
 
 		ReplyRejectedException exception = new ReplyRejectedException(
 				new ReplyJudge.Verdict(List.of("tone was inappropriate")));
@@ -125,30 +94,37 @@ class DemoRunnerTest {
 	}
 
 	@Test
-	void demoRunnerConfiguredWhenEnabledOrMissing() {
-		ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withUserConfiguration(DemoRunner.class)
-			.withBean(TriageService.class, () -> Mockito.mock(TriageService.class))
-			.withBean(ReplyDrafter.class, () -> Mockito.mock(ReplyDrafter.class))
-			.withPropertyValues("supportdesk.demo.ticket=test ticket");
+	void demoRunnerConfiguredOnlyWhenEnabled() {
+		contextRunner().withPropertyValues("supportdesk.demo.enabled=true")
+			.run((context) -> assertThat(context).hasSingleBean(DemoRunner.class));
+	}
 
-		contextRunner.withPropertyValues("supportdesk.demo.enabled=true")
-			.run(context -> assertThat(context).hasSingleBean(DemoRunner.class));
-
-		contextRunner
-			.run(context -> assertThat(context).hasSingleBean(DemoRunner.class));
+	@Test
+	void demoRunnerNotConfiguredWhenPropertyMissing() {
+		contextRunner().run((context) -> assertThat(context).doesNotHaveBean(DemoRunner.class));
 	}
 
 	@Test
 	void demoRunnerNotConfiguredWhenDisabled() {
-		ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withUserConfiguration(DemoRunner.class)
+		contextRunner().withPropertyValues("supportdesk.demo.enabled=false")
+			.run((context) -> assertThat(context).doesNotHaveBean(DemoRunner.class));
+	}
+
+	@Test
+	void shippedApplicationPropertiesKeepDemoOff() throws IOException {
+		// The test classpath overrides application.properties, so read the shipped file.
+		Properties shipped = new Properties();
+		try (InputStream in = Files.newInputStream(Path.of("src/main/resources/application.properties"))) {
+			shipped.load(in);
+		}
+		assertThat(shipped.getProperty("supportdesk.demo.enabled")).isEqualTo("false");
+	}
+
+	private static ApplicationContextRunner contextRunner() {
+		return new ApplicationContextRunner().withUserConfiguration(DemoRunner.class)
 			.withBean(TriageService.class, () -> Mockito.mock(TriageService.class))
 			.withBean(ReplyDrafter.class, () -> Mockito.mock(ReplyDrafter.class))
 			.withPropertyValues("supportdesk.demo.ticket=test ticket");
-
-		contextRunner.withPropertyValues("supportdesk.demo.enabled=false")
-			.run(context -> assertThat(context).doesNotHaveBean(DemoRunner.class));
 	}
 
 }

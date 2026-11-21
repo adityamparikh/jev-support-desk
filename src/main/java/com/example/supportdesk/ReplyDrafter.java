@@ -35,8 +35,8 @@ class ReplyDrafter {
 			if (verdict.passed()) {
 				return reply;
 			}
-			prompt = ticket + "\n\nYour previous draft was rejected:\n" + reply + "\n\nProblems: "
-					+ verdict.summary() + "\nWrite a new reply that fixes them.";
+			prompt = ticket + "\n\nYour previous draft was rejected:\n" + reply + "\n\nProblems: " + verdict.summary()
+					+ "\nWrite a new reply that fixes them.";
 		}
 		throw new ReplyRejectedException(verdict);
 	}

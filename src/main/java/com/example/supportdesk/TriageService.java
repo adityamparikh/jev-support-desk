@@ -14,10 +14,7 @@ public class TriageService {
 	private final DecisionModel decisionModel;
 
 	// Routing is cheap to undo; closing a ticket unread is not.
-	private final ConfidenceGate gate = ConfidenceGate.builder()
-		.floor(0.60d)
-		.require("auto_close", 0.90d)
-		.build();
+	private final ConfidenceGate gate = ConfidenceGate.builder().floor(0.60d).require("auto_close", 0.90d).build();
 
 	public TriageService(DecisionModel decisionModel) {
 		this.decisionModel = decisionModel;

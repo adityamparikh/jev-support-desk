@@ -114,12 +114,8 @@ class TriageServiceTest {
 	}
 
 	@ParameterizedTest
-	@CsvSource({
-			"0.20, 0.40, route_to_sales",
-			"0.10, 0.50, route_to_sales",
-			"0.20, 0.50, route_to_sales",
-			"0.19, 0.49, auto_close"
-	})
+	@CsvSource({ "0.20, 0.40, route_to_sales", "0.10, 0.50, route_to_sales", "0.20, 0.50, route_to_sales",
+			"0.19, 0.49, auto_close" })
 	void boundaryConditionsForActionDecision(double urgency, double frustration, String expectedAction) {
 		String ticket = "Boundary condition test ticket";
 		DecisionResponse response = createResponse("sales", 0.92d, urgency, frustration);
@@ -130,9 +126,9 @@ class TriageServiceTest {
 		assertThat(triage.action()).isEqualTo(expectedAction);
 	}
 
-	// Frustration is given on the 0..1 scale the tests think in; Jev scores it on levels 0..2.
-	private DecisionResponse createResponse(String department, double confidence, double urgency,
-			double frustration) {
+	// Frustration is given on the 0..1 scale the tests think in; Jev scores it on levels
+	// 0..2.
+	private DecisionResponse createResponse(String department, double confidence, double urgency, double frustration) {
 		return TestAnswers.response("test-model", TicketQuestions.TRIAGE)
 			.answer("department", TestAnswers.choice(department, confidence))
 			.answer("is_urgent", TestAnswers.yesNo(urgency))
